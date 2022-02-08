@@ -8,10 +8,10 @@
 - [x] Xor
 - [x] Mux
 - [x] DMux
-- [ ] Not16
-- [ ] And16
-- [ ] Or16
-- [ ] Mux16
+- [x] Not16
+- [x] And16
+- [x] Or16
+- [x] Mux16
 - [ ] Or8Way
 - [ ] Mux4Way16
 - [ ] Mux8Way16
