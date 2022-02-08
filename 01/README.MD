@@ -4,7 +4,7 @@
 
 - [x] Not
 - [x] And
-- [ ] Or
+- [x] Or
 - [ ] Xor
 - [ ] Mux
 - [ ] DMux
