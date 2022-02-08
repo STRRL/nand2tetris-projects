@@ -6,8 +6,8 @@
 - [x] And
 - [x] Or
 - [x] Xor
-- [ ] Mux
-- [ ] DMux
+- [x] Mux
+- [x] DMux
 - [ ] Not16
 - [ ] And16
 - [ ] Or16
