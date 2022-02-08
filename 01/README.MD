@@ -5,7 +5,7 @@
 - [x] Not
 - [x] And
 - [x] Or
-- [ ] Xor
+- [x] Xor
 - [ ] Mux
 - [ ] DMux
 - [ ] Not16
