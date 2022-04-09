@@ -39,5 +39,73 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    // instruction part I: control bit
+    // control bit is instruction[15]
+    // when control bit is 1, the instruction is C-instruction
+    // otherwise, the instruction is A-instruction
+
+    // instruction part II: reserved bits
+    // reserved bits are instruction[14:13]
+    // they always be 1 and would be ignored
+
+    // instruction part IIII: comp 
+    // comp are instruction[12:6]
+    // as pattern acccccc
+    // ALU always use D register as the first operand
+    // when a is 0, it use A register as the second operand
+    // when a is 1, it use M register as the second operand
+
+
+    // instruction part IV: dest
+    // dest are instruction[5:3]
+    // instruction[5] means whether to write to A register
+    // instruction[4] means whether to write to D register
+    // instruction[3] means whether to write to M register
+
+    // instruction part V: jump
+    // jump are instruction[2:0]
+    // instruction[2] means jump when comp < 0
+    // instruction[1] means jump when comp == 0
+    // instruction[0] means jump when comp > 0
+
+    // ALU
+    ALU(x=DRegisterOut, y=ARegisterOrM, zx=zx, nx=nx, zy=zy, ny=ny, f=f, no=no, out=ALUOutput, zr=zr, ng=ng, out=outM);
+    DMux(a=isA, b=isC, in=true, sel=instruction[15]);
+    // comp part
+    And(a = isC, b = instruction[11], out = zx);
+    And(a = isC, b = instruction[10], out = nx);
+    And(a = isC, b = instruction[9], out = zy);
+    And(a = isC, b = instruction[8], out = ny);
+    And(a = isC, b = instruction[7], out = f);
+    And(a = isC, b = instruction[6], out = no);
+    // should load Memory
+    And(a=isC, b=instruction[3], out=writeM);
+    // A register
+    ARegister(in=ARegisterIn, out=ARegisterOut, load=shouldLoadA, out[0..14]=addressM);
+    Mux16(out=ARegisterIn, a=instruction, b=ALUOutput, sel=loadAFromALUOutput);
+    And(a=isC, b=instruction[5], out=loadAFromALUOutput);
+    Or(a=isA, b=instruction[5], out=shouldLoadA);
+    // D register
+    DRegister(in=ALUOutput, out=DRegisterOut, load=shouldLoadD);
+    And(a=isC, b=instruction[4], out=shouldLoadD);
+    // A or M multiplexor
+    Mux16(out=ARegisterOrM, a=ARegisterOut, b=inM, sel=instruction[12]);
+    And(a=isC, b=instruction[2], out=shouldJumpWhenLT);
+    And(a=isC, b=instruction[1], out=shouldJumpWhenEQ);
+    And(a=isC, b=instruction[0], out=shouldJumpWhenGT);
+    // not negative
+    Not(in=ng, out=notNG);
+    // not zero
+    Not(in=zr, out=notZR);
+    And(a=notNG, b=notZR, out=GT);
+    // jump when eq
+    And(a=shouldJumpWhenEQ, b=zr, out=jumpWithEQ);
+    // jump when gt
+    And(a=shouldJumpWhenGT, b=GT, out=jumpWithGT);
+    // jump when lt
+    And(a=shouldJumpWhenLT, b=ng, out=jumpWithLT);
+    Or(a=jumpWithEQ, b=jumpWithGT, out=jumpEQorGT);
+    Or(a=jumpEQorGT, b=jumpWithLT, out=jump);
+    // PC
+    PC(in=ARegisterOut, reset=reset, load=jump, inc=true, out[0..14]=pc);
 }
