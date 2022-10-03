@@ -3,7 +3,11 @@ mod parser;
 mod vm_instruction;
 
 fn main() -> Result<(), anyhow::Error> {
-    env_logger::init();
+    let mut env_logger_builder = env_logger::Builder::from_default_env();
+    env_logger_builder
+        .filter(None, log::LevelFilter::Debug)
+        .init();
+
     let vmfile_path_option = std::env::args().nth(1);
     if vmfile_path_option.is_none() {
         println!("Usage: vm-tanslator <vmfile>");

@@ -24,8 +24,48 @@ impl ToASM for VMInstruction {
     fn to_asm(&self) -> Vec<String> {
         match self {
             VMInstruction::Arithmetic(instruction) => instruction.to_asm(),
-            VMInstruction::Push(memory_access) => {
-                if let MemorySegment::Constant = memory_access.segment {
+            VMInstruction::Push(memory_access) => match memory_access.segment {
+                MemorySegment::Argument
+                | MemorySegment::Local
+                | MemorySegment::This
+                | MemorySegment::That
+                | MemorySegment::Temp => {
+                    let base_address = match memory_access.segment {
+                        MemorySegment::Argument => "ARG",
+                        MemorySegment::Local => "LCL",
+                        MemorySegment::This => "THIS",
+                        MemorySegment::That => "THAT",
+                        MemorySegment::Temp => "R5",
+                        _ => unreachable!(),
+                    };
+
+                    let load_address_to_d = match memory_access.segment {
+                        MemorySegment::Temp => vec![
+                            format!("@{}", base_address),
+                            "D=A".to_string(),
+                            format!("@{}", memory_access.index),
+                            "D=D+A".to_string(),
+                        ],
+                        _ => vec![
+                            format!("@{}", base_address),
+                            "D=M".to_string(),
+                            format!("@{}", memory_access.index),
+                            "D=D+A".to_string(),
+                        ],
+                    };
+                    return vec![
+                        load_address_to_d,
+                        vec!["A=D", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
+                            .iter()
+                            .map(|s| s.to_string())
+                            .collect(),
+                    ]
+                    .concat()
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect();
+                }
+                MemorySegment::Constant => {
                     return vec![
                         format!("@{}", memory_access.index).as_str(),
                         "D=A",
@@ -39,11 +79,58 @@ impl ToASM for VMInstruction {
                     .map(|s| s.to_string())
                     .collect();
                 }
-                todo!()
-            }
-            VMInstruction::Pop(memory_access) => {
-                todo!()
-            }
+                MemorySegment::Pointer => todo!(),
+                MemorySegment::Static => todo!(),
+            },
+            VMInstruction::Pop(memory_access) => match memory_access.segment {
+                MemorySegment::Argument
+                | MemorySegment::Local
+                | MemorySegment::This
+                | MemorySegment::That
+                | MemorySegment::Temp => {
+                    let base_address = match memory_access.segment {
+                        MemorySegment::Argument => "ARG",
+                        MemorySegment::Local => "LCL",
+                        MemorySegment::This => "THIS",
+                        MemorySegment::That => "THAT",
+                        MemorySegment::Temp => "R5",
+                        _ => unreachable!(
+                            "could not get base address for {:?}",
+                            memory_access.segment
+                        ),
+                    };
+
+                    let load_address_to_d = match memory_access.segment {
+                        MemorySegment::Temp => vec![
+                            format!("@{}", base_address),
+                            "D=A".to_string(),
+                            format!("@{}", memory_access.index),
+                            "D=D+A".to_string(),
+                        ],
+                        _ => vec![
+                            format!("@{}", base_address),
+                            "D=M".to_string(),
+                            format!("@{}", memory_access.index),
+                            "D=D+A".to_string(),
+                        ],
+                    };
+
+                    return vec![
+                        load_address_to_d,
+                        vec!["@R13", "M=D", "@SP", "AM=M-1", "D=M", "@R13", "A=M", "M=D"]
+                            .iter()
+                            .map(|s| s.to_string())
+                            .collect(),
+                    ]
+                    .concat()
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect();
+                }
+                MemorySegment::Static => todo!(),
+                MemorySegment::Pointer => todo!(),
+                MemorySegment::Constant => unreachable!("could not pop to constant segment"),
+            },
         }
     }
 }
