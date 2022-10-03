@@ -399,19 +399,3 @@ pub enum MemorySegment {
     Pointer,
     Temp,
 }
-
-impl MemorySegment {
-    fn parse_from_line(line: &str, filename: &str) -> Result<Self, anyhow::Error> {
-        match line {
-            "argument" => Ok(MemorySegment::Argument),
-            "local" => Ok(MemorySegment::Local),
-            "static" => Ok(MemorySegment::Static(filename.to_string())),
-            "constant" => Ok(MemorySegment::Constant),
-            "this" => Ok(MemorySegment::This),
-            "that" => Ok(MemorySegment::That),
-            "pointer" => Ok(MemorySegment::Pointer),
-            "temp" => Ok(MemorySegment::Temp),
-            value => Err(anyhow!("Invalid memory segment: {}", value)),
-        }
-    }
-}
