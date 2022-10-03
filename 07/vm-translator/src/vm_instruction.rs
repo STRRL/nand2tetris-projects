@@ -79,7 +79,24 @@ impl ToASM for VMInstruction {
                     .map(|s| s.to_string())
                     .collect();
                 }
-                MemorySegment::Pointer => todo!(),
+                MemorySegment::Pointer => match memory_access.index {
+                    0 => {
+                        return vec!["@THIS", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
+                            .iter()
+                            .map(|s| s.to_string())
+                            .collect();
+                    }
+                    1 => {
+                        return vec!["@THAT", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
+                            .iter()
+                            .map(|s| s.to_string())
+                            .collect();
+                    }
+                    _ => unreachable!(
+                        "pointer index must be 0 or 1, current: {}",
+                        memory_access.index
+                    ),
+                },
                 MemorySegment::Static => todo!(),
             },
             VMInstruction::Pop(memory_access) => match memory_access.segment {
@@ -128,7 +145,24 @@ impl ToASM for VMInstruction {
                     .collect();
                 }
                 MemorySegment::Static => todo!(),
-                MemorySegment::Pointer => todo!(),
+                MemorySegment::Pointer => match memory_access.index {
+                    0 => {
+                        return vec!["@SP", "AM=M-1", "D=M", "@THIS", "M=D"]
+                            .iter()
+                            .map(|s| s.to_string())
+                            .collect();
+                    }
+                    1 => {
+                        return vec!["@SP", "AM=M-1", "D=M", "@THAT", "M=D"]
+                            .iter()
+                            .map(|s| s.to_string())
+                            .collect();
+                    }
+                    _ => unreachable!(
+                        "pointer index must be 0 or 1, current: {}",
+                        memory_access.index
+                    ),
+                },
                 MemorySegment::Constant => unreachable!("could not pop to constant segment"),
             },
         }
