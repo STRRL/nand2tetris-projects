@@ -24,13 +24,13 @@ impl ToASM for VMInstruction {
     fn to_asm(&self) -> Vec<String> {
         match self {
             VMInstruction::Arithmetic(instruction) => instruction.to_asm(),
-            VMInstruction::Push(memory_access) => match memory_access.segment {
+            VMInstruction::Push(memory_access) => match &memory_access.segment {
                 MemorySegment::Argument
                 | MemorySegment::Local
                 | MemorySegment::This
                 | MemorySegment::That
                 | MemorySegment::Temp => {
-                    let base_address = match memory_access.segment {
+                    let base_address = match &memory_access.segment {
                         MemorySegment::Argument => "ARG",
                         MemorySegment::Local => "LCL",
                         MemorySegment::This => "THIS",
@@ -39,7 +39,7 @@ impl ToASM for VMInstruction {
                         _ => unreachable!(),
                     };
 
-                    let load_address_to_d = match memory_access.segment {
+                    let load_address_to_d = match &memory_access.segment {
                         MemorySegment::Temp => vec![
                             format!("@{}", base_address),
                             "D=A".to_string(),
@@ -79,7 +79,7 @@ impl ToASM for VMInstruction {
                     .map(|s| s.to_string())
                     .collect();
                 }
-                MemorySegment::Pointer => match memory_access.index {
+                MemorySegment::Pointer => match &memory_access.index {
                     0 => {
                         return vec!["@THIS", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
                             .iter()
@@ -97,9 +97,20 @@ impl ToASM for VMInstruction {
                         memory_access.index
                     ),
                 },
-                MemorySegment::Static => todo!(),
+                MemorySegment::Static(filename) => vec![
+                    format!("@{}.{}", filename, memory_access.index).as_str(),
+                    "D=M",
+                    "@SP",
+                    "A=M",
+                    "M=D",
+                    "@SP",
+                    "M=M+1",
+                ]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
             },
-            VMInstruction::Pop(memory_access) => match memory_access.segment {
+            VMInstruction::Pop(memory_access) => match &memory_access.segment {
                 MemorySegment::Argument
                 | MemorySegment::Local
                 | MemorySegment::This
@@ -117,7 +128,7 @@ impl ToASM for VMInstruction {
                         ),
                     };
 
-                    let load_address_to_d = match memory_access.segment {
+                    let load_address_to_d = match &memory_access.segment {
                         MemorySegment::Temp => vec![
                             format!("@{}", base_address),
                             "D=A".to_string(),
@@ -144,8 +155,17 @@ impl ToASM for VMInstruction {
                     .map(|s| s.to_string())
                     .collect();
                 }
-                MemorySegment::Static => todo!(),
-                MemorySegment::Pointer => match memory_access.index {
+                MemorySegment::Static(filename) => vec![
+                    "@SP",
+                    "AM=M-1",
+                    "D=M",
+                    format!("@{}.{}", filename, memory_access.index).as_str(),
+                    "M=D",
+                ]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+                MemorySegment::Pointer => match &memory_access.index {
                     0 => {
                         return vec!["@SP", "AM=M-1", "D=M", "@THIS", "M=D"]
                             .iter()
@@ -169,10 +189,8 @@ impl ToASM for VMInstruction {
     }
 }
 
-impl TryFrom<&str> for VMInstruction {
-    type Error = anyhow::Error;
-
-    fn try_from(line: &str) -> Result<Self, Self::Error> {
+impl VMInstruction {
+    pub fn parse_from_line(line: &str, filename: &str) -> Result<Self, anyhow::Error> {
         let tokens = line.split_whitespace().collect::<Vec<&str>>();
 
         if tokens.len() == 1 {
@@ -197,7 +215,7 @@ impl TryFrom<&str> for VMInstruction {
                 "this" => MemorySegment::This,
                 "that" => MemorySegment::That,
                 "constant" => MemorySegment::Constant,
-                "static" => MemorySegment::Static,
+                "static" => MemorySegment::Static(filename.to_string()),
                 "pointer" => MemorySegment::Pointer,
                 "temp" => MemorySegment::Temp,
                 _ => return Err(anyhow!("Invalid segment: {}", tokens[1])),
@@ -374,7 +392,7 @@ impl MemoryAccess {
 pub enum MemorySegment {
     Argument,
     Local,
-    Static,
+    Static(String),
     Constant,
     This,
     That,
@@ -382,13 +400,12 @@ pub enum MemorySegment {
     Temp,
 }
 
-impl TryFrom<&str> for MemorySegment {
-    type Error = anyhow::Error;
-    fn try_from(line: &str) -> Result<Self, Self::Error> {
+impl MemorySegment {
+    fn parse_from_line(line: &str, filename: &str) -> Result<Self, anyhow::Error> {
         match line {
             "argument" => Ok(MemorySegment::Argument),
             "local" => Ok(MemorySegment::Local),
-            "static" => Ok(MemorySegment::Static),
+            "static" => Ok(MemorySegment::Static(filename.to_string())),
             "constant" => Ok(MemorySegment::Constant),
             "this" => Ok(MemorySegment::This),
             "that" => Ok(MemorySegment::That),

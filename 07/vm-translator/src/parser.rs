@@ -1,15 +1,26 @@
 use crate::vm_instruction::VMInstruction;
 
 pub struct Parser {
+    filename: String,
     reader: Box<dyn std::io::BufRead>,
     last_line: String,
 }
 
 impl Parser {
     pub fn new(vmfile_path: String) -> Self {
-        let file = std::fs::File::open(vmfile_path).unwrap();
+        let file = std::fs::File::open(vmfile_path.clone()).unwrap();
         let reader = Box::new(std::io::BufReader::new(file));
+        let filename = vmfile_path
+            .clone()
+            .split("/")
+            .last()
+            .unwrap()
+            .split(".")
+            .next()
+            .unwrap()
+            .to_string();
         Self {
+            filename,
             reader,
             last_line: String::new(),
         }
@@ -42,6 +53,6 @@ impl Parser {
     }
 
     pub fn next_command(&self) -> anyhow::Result<VMInstruction> {
-        VMInstruction::try_from(self.last_line.trim())
+        VMInstruction::parse_from_line(self.last_line.trim(), &self.filename)
     }
 }
